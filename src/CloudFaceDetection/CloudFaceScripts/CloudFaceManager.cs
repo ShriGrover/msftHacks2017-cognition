@@ -17,6 +17,8 @@ public class CloudFaceManager : MonoBehaviour
     private static CloudFaceManager instance = null;
     private bool isInitialized = false;
 
+    public bool matching;
+
 
     void Start()
     {
@@ -28,6 +30,7 @@ public class CloudFaceManager : MonoBehaviour
         }
 
         isInitialized = true;
+        matching = false;
     }
 
     public static CloudFaceManager Instance
@@ -69,15 +72,14 @@ public class CloudFaceManager : MonoBehaviour
             throw new Exception("The face-subscription key is not set.");
         }
 
-        string requestUrl = string.Format("{0}/detect?returnFaceId={1}&returnFaceLandmarks={2}",
-                                            ServiceHost, true, false);
+        string requestUrl = string.Format("{0}/detect?returnFaceId={1}&returnFaceLandmarks={2}&returnFaceAttributes={3}",
+                                            ServiceHost, true, false, "age,gender,smile,facialHair,glasses");
 
         Dictionary<string, string> headers = new Dictionary<string, string>();
-        headers.Add("ocp-apim-subscription-key", faceSubscriptionKey);
+        headers.Add("ocp-apim-subscription-key", "8b06ad0b9148481c9cc3d60e042425e4");
 
         headers.Add("Content-Type", "application/octet-stream");
         headers.Add("Content-Length", imageBytes.Length.ToString());
-
         WWW www = new WWW(requestUrl, imageBytes, headers);
         yield return www;
 
@@ -87,14 +89,11 @@ public class CloudFaceManager : MonoBehaviour
             FacesCollection facesCollection = JsonUtility.FromJson<FacesCollection>(newJson);
             faces = facesCollection.faces;
             string retrived = www.text;
-            //var json = JsonUtility.ToJson(retrived);
-
-            //throw new Exception(json);
             string response = cleanResponse(www.text);
-            //response = response.Substring(1);
-            //response = response.Substring(0, response.Length - 1);
             aFace face = JsonUtility.FromJson<aFace>(response);
-            //throw new Exception(face.faceId);
+            // Debug.Log("Calling with FaceID: " + face.faceId);
+            // www.Dispose();
+            // GC.Collect();
             matchingFace(face.faceId);
         }
         else
@@ -105,37 +104,89 @@ public class CloudFaceManager : MonoBehaviour
 
     private string cleanResponse(string response)
     {
+        if (response.Length < 1)
+        {
+            return "";
+        }
         string temp = response.Substring(1);
         temp = temp.Substring(0, temp.Length - 1);
+        temp = temp.Replace("\r", "");
+        temp = temp.Replace("\n", "");
+        temp = temp.Replace(" ", "");
 
         return temp;
     }
 
-    public bool matchingFace(string faceId)
+    private bool isTrue(string response)
     {
-        string requestUrl = string.Format("{0}/verify", ServiceHost);
-        Dictionary<string, string> header = new Dictionary<string, string>();
-        header.Add("ocp-apim-subscription-key", faceSubscriptionKey);
-        header.Add("faceId1", faceId);
-        header.Add("faceId2", "0b2ebd57-7316-4e44-aa9b-1fb702015a41");
-
-        WWW www = new WWW(requestUrl, new Byte[0], header);
-
-        while(!www.isDone) {}
-
-        string response = cleanResponse(www.text);
-
-        aMatching match = JsonUtility.FromJson<aMatching>(response);
-
-        if(match.confidence  >= 0.7) {
-            throw new Exception(match.isIdentical.ToString());
-            return match.isIdentical;
-        } else
+        if(response.Length < 1)
         {
-            throw new Exception("False: No confidence");
+            return false;
         }
+        string temp = response.Replace("{", "");
+         temp = temp.Replace("{", "");
+         temp = temp.Replace("\r", "");
+         temp = temp.Replace("\n", "");
+         temp = temp.Replace("\"", "");
+        temp = temp.Replace(":", "");
+        // Debug.Log(temp);
+        return (temp.Substring(11, 12) == "t");
+    }
 
-        return false;
+    public IEnumerator matchingFace(string faceId)
+    {
+        // Debug.Log("Starting with FaceID" + faceId);
+        string theFace;
+        //if(faceId == "") {
+        //    theFace = "9887a4a0-fd3c-4685-8e61-d600184c395e";
+        //} else {
+        //    theFace = faceId;
+        //}
+        theFace = faceId;
+        string requestUrl = string.Format("{0}/verify", ServiceHost);
+        Dictionary<string, string> header2 = new Dictionary<string, string>();
+        header2.Add("ocp-apim-subscription-key", "8b06ad0b9148481c9cc3d60e042425e4");
+        //header2.Add("faceId1", "19ce87ee-ad25-4ebc-b166-b58dad20c48c");
+        // faceId2 is the static target
+        header2.Add("faceId2", "0b2ebd57-7316-4e44-aa9b-1fb702015a41");
+        header2.Add("Host", "westus.api.cognitive.microsoft.com");
+        header2.Add("Content-Type", "application/json");
+        string body = "{ \"faceId1\": \"" + faceId + "\", \"faceId2\": \"0b2ebd57-7316-4e44-aa9b-1fb702015a41\" }";
+        //string body = "{ \"faceId1\": \"19ce87ee-ad25-4ebc-b166-b58dad20c48c\", \"faceId2\": \"0b2ebd57-7316-4e44-aa9b-1fb702015a41\" }";
+        // Debug.Log("Starting Webclient");
+        byte[] bodyValue = Encoding.ASCII.GetBytes(body);
+        //AsyncOperation www2 = new WWW(requestUrl, new byte[0], header);
+        // Debug.Log(header2);
+        WWW www2 = new WWW(requestUrl, bodyValue, header2);
+        // Debug.Log("Waiting...");
+        yield return www2;
+        while(!www2.isDone) { }
+        if(www2.isDone) {
+            // atempted to yield thread
+            // yield return new WaitForSeconds(0.75f);
+            //yield WaitForSeconds(5);
+            // Debug.Log(faceId);
+            //yield return www2;
+            // Debug.Log("Returned: " + www2.text);
+            if (!CloudWebTools.IsErrorStatus(www2))
+            {
+                string response = cleanResponse(www2.text);
+                bool temp = isTrue(response);
+                // Debug.Log(temp);
+                // Debug.Log(response.Substring(15, 16));
+                char[] theResponse = response.ToCharArray();
+                if (theResponse[14] == 't')
+                {
+                    matching = true;
+                    yield return null;
+                }
+                else
+                {
+                    matching = false;
+                    yield return null;
+                }
+            }
+        }
     }
 
 

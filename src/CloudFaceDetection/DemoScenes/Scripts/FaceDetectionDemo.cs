@@ -24,7 +24,6 @@ public class FaceDetectionDemo : MonoBehaviour
 	// GUI scroll variable for the results' list
 	private Vector2 scroll;
 
-
 	void Start () 
 	{
 		SetHintText("Click on the camera image to make a shot");
@@ -66,6 +65,7 @@ public class FaceDetectionDemo : MonoBehaviour
 					}
 				}
 			}
+
 		}
 		
 	}
@@ -127,14 +127,16 @@ public class FaceDetectionDemo : MonoBehaviour
 		{
 			yield return faceManager.DetectFaces(texCamShot);
 			faces = faceManager.faces;
+            // Debug.Log("Zeroth FaceID: " + faces[0].faceId);
+			//yield return faceManager.matchingFace(faces[0].faceId);
 			
 			if(faces != null && faces.Length > 0)
 			{
 				//if(displayFaceRectangles)
 				{
 					faceManager.DrawFaceRects(texCamShot, faces, FaceDetectionUtils.FaceColors, this.displayHeadDirection);
+					StartCoroutine(isTarget());
 				}
-
 				SetHintText("Click on the camera image to make a shot");
 			}
 			else
@@ -149,6 +151,7 @@ public class FaceDetectionDemo : MonoBehaviour
 
 		yield return null;
 	}
+
 
 	void OnGUI()
 	{
@@ -196,8 +199,20 @@ public class FaceDetectionDemo : MonoBehaviour
 		}
 		else
 		{
-			Debug.Log(sHintText);
+			// Debug.Log(sHintText);
 		}
+	}
+
+	private IEnumerator isTarget() {
+		string faceID = faces[0].faceId;
+		// Debug.Log("The current face is: " + faceID);
+		yield return CloudFaceManager.Instance.matchingFace(faceID);
+		// do something with CloudFaceManager.Instance.matching
+		Debug.Log("Target Match: " + CloudFaceManager.Instance.matching);
+		if(CloudFaceManager.Instance.matching) {
+			Debug.Log("Jonathan Budiardjo");
+		}
+		yield return null;
 	}
 
 }

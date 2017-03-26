@@ -178,7 +178,7 @@ public class UIFaceDetectionDemo : MonoBehaviour
         }
         else
         {
-            Debug.Log(result);
+            // Debug.Log(result);
         }
     }
 

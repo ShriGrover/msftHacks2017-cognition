@@ -33,9 +33,24 @@ public static class FaceDetectionUtils {
         StringBuilder sbResult = new StringBuilder();
 
         sbResult.Append(string.Format("{0}:", faceColorName)).AppendLine();
-        sbResult.Append(string.Format("• Gender: {0}", face.faceAttributes.gender)).AppendLine();
-		sbResult.Append(string.Format("• Age: {0}", face.faceAttributes.age)).AppendLine();
-		sbResult.Append(string.Format("• Smile: {0:F0}%", face.faceAttributes.smile * 100f)).AppendLine().AppendLine();
+        if(CloudFaceManager.Instance.matching)
+        {
+            sbResult.Append(string.Format("• Name: {0}", "Jonathan Budiardjo")).AppendLine();
+            sbResult.Append(string.Format("• Relation: {0}", "Grand-son")).AppendLine();
+
+        }
+        else
+        {
+            sbResult.Append(string.Format("• Name: {0}", "null")).AppendLine();
+            sbResult.Append(string.Format("• Relation: {0}", "null")).AppendLine();
+        }
+
+        // sbResult.Append(string.Format("• Gender: {0}", face.faceAttributes.gender)).AppendLine();
+        //sbResult.Append(string.Format("• Age: {0}", face.faceAttributes.age)).AppendLine();
+		// sbResult.Append(string.Format("• Age: {0}", face.faceAttributes.age)).AppendLine();
+        //sbResult.Append(string.Format("• Smile: {0:F0}%", face.faceAttributes.smile * 100f)).AppendLine().AppendLine();
+		// sbResult.Append(string.Format("• Smile: {0:F0}%", face.faceAttributes.smile * 100f)).AppendLine().AppendLine();
+
 
         //			sbResult.Append(string.Format("    Beard: {0}", face.FaceAttributes.FacialHair.Beard)).AppendLine();
         //			sbResult.Append(string.Format("    Moustache: {0}", face.FaceAttributes.FacialHair.Moustache)).AppendLine();
